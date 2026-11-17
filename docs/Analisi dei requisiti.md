@@ -19,7 +19,7 @@ Tante operazioni del sistema sono transazionali. Le seguenti sono le più import
 | **T1** | **Ritiro e pagamento**                               | in un'unica transazione: registra il documento, l'ora effettiva di ritiro, l'eventuale penale per ritardo al ritiro, il pagamento, e porta lo stato a `IN_CORSO`                                                                 | se il pagamento fallisce non deve restare un documento registrato su una prenotazione mai partita, né una prenotazione `IN_CORSO` senza pagamento | [[#5.2 Ritiro e pagamento\|5.2]]                                                   |
 | **T2** | **Riconsegna e chiusura**                            | in un'unica transazione: registra l'ora effettiva di riconsegna, calcola e salva le penali (ritardo, danni), registra il loro pagamento, porta lo stato a `CONCLUSA` e, se era il primo ordine del cliente, rende valido il codice sconto nato da quella prenotazione | se un passo fallisce, non deve esserci una prenotazione conclusa con penali non registrate, né un codice sconto attivo per un noleggio non chiuso | [[#5.3 Riconsegna e penali\|5.3]], [[#4.7 Conferma, email e codice sconto\|4.7]] |
 | **C1** | **Creazione della prenotazione** (online e al banco) | due clienti, o un cliente e un gestore, vogliono l'ultimo mezzo dello stesso negozio nello stesso momento                                                                                                                        | conflitto frequente su una risorsa scarsa, causato da **righe nuove** → **lock pessimistico** sul negozio                                         | [[#7.1 Punto critico 1: creare una prenotazione (online o al banco)\|7.1]]         |
-| **C2** | **Modifiche alla stessa prenotazione**               | il gestore registra il ritiro mentre il cliente annulla dall'app                                                                                                                                                                 | conflitto raro sulla **stessa riga** → **lock ottimistico** con `@Version`                                                                        | [[#7.2 Punto critico 2: modifiche concorrenti alla stessa prenotazione\|7.2]]      |
+| **C2** | **Modifiche alla stessa prenotazione**               | due gestori dello stesso negozio registrano nello stesso momento il ritiro (o la riconsegna) della stessa prenotazione, es. doppio clic o due dipendenti al banco | conflitto raro sulla **stessa riga** → **lock ottimistico** con `@Version`                                                                        | [[#7.2 Punto critico 2: modifiche concorrenti alla stessa prenotazione\|7.2]]      |
 
 > [!IMPORTANT]
 > - Le eccezioni del progetto sono *checked*, quindi T1 e T2 hanno bisogno di `@Transactional(rollbackFor = Exception.class)`. Senza, il rollback **non scatta** ([[#7.1 Punto critico 1: creare una prenotazione (online o al banco)|7.1]]).
@@ -51,6 +51,14 @@ Il cliente si **registra** al primo accesso (nome, cognome, email, telefono) e p
 - Il server Spring va progettato **stateless**: finita la richiesta non conserva nulla dell'utente. Tenere i dati del cliente in una sessione lato server va contro questa scelta.
 - I cookie stanno sul client e possono essere **modificati o manomessi**. Ci vanno solo informazioni non sensibili. Email e telefono sono dati personali e servono anche al gestore per trovare la prenotazione: devono stare nel DB.
 - Con l'account il cliente rivede le sue prenotazioni, le annulla e usa i codici sconto, che sono legati a lui.
+
+> [!NOTE] Autenticazione (decisa, slide Es5 in `archivio/Sviluppo Web/Scala_2025`)
+> Come a lezione: **Keycloak** come Authorization Server (OAuth 2.0, token JWT) e il server Spring come **resource server**.
+> - Ruoli **cliente**, **gestore**, **admin** come ruoli del client Keycloak (`resource_access`), letti da un `JwtAuthenticationConverter` e controllati con `@PreAuthorize("hasAuthority(...)")` nei controller.
+> - Il cliente si registra dalla pagina di Keycloak (registrazione attiva); poi `POST /api/clienti` crea il suo profilo nel nostro DB prendendo l'**email dal token**, mai dal body.
+> - Il legame utente Keycloak → riga `utente` è l'email. Il gestore → negozio resta nel nostro DB.
+> - Il controller ricava l'id dell'utente con una lettura separata **prima** di chiamare il service: dentro `creaPrenotazione` il lock sul negozio deve restare la prima query ([[#7.1 Punto critico 1: creare una prenotazione (online o al banco)|7.1]]).
+> - In locale Keycloak gira sulla porta 8081 (realm `noleggio`); il file del realm sta nel progetto.
 
 ---
 
@@ -117,6 +125,12 @@ Ogni **tipo di mezzo** ha il suo listino; anche gli accessori hanno un prezzo.
 
 I **festivi** non si calcolano da soli: nel database c'è un elenco delle date festive, che l'admin può modificare ([[#8.2 Endpoint per parte|8.2]]). È un'informazione da prevedere nell'E-R.
 
+**Formula del listino (decisa).** L'admin imposta solo i **numeri** dalla sua interfaccia; la **formula**, cioè quali prezzi esistono, è fissata nel codice. Ogni tipo di mezzo ha quattro prezzi: **orario** e **giornaliero**, ciascuno feriale e fine settimana/festivo.
+- Si pagano le **ore iniziate** × prezzo orario, ma per ogni giornata di noleggio mai più del **prezzo giornaliero** (tetto).
+- Feriale o fine settimana/festivo lo decide il **giorno del ritiro**.
+- Proroga ([[#5.8 Proroga del noleggio|5.8]]): il prezzo in più è prezzo(ritiro → nuova riconsegna) − prezzo(ritiro → vecchia riconsegna), con le tariffe del momento della proroga e mai sotto zero. Prezzare solo il tempo aggiunto ignorerebbe il tetto giornaliero.
+- Gli accessori hanno un prezzo per tutto il noleggio (feriale e festivo), non orario.
+
 > [!IMPORTANT] Prezzo fissato al momento della prenotazione
 > Visto che l'admin può cambiare i prezzi in qualsiasi momento, se il listino cambia tra la prenotazione e il ritiro il cliente paga quanto gli è stato mostrato. Quindi la prenotazione deve **conservare il prezzo unitario** di ogni mezzo e accessorio, non solo un riferimento al listino. È lo stesso motivo per cui in un e-commerce l'ordine salva il prezzo pagato.
 
@@ -158,7 +172,6 @@ Regole codice sconto: percentuale fissa (10%), **un solo uso**, valido solo per 
 ### 4.9 Promemoria via email un'ora prima del ritiro
 Un'ora prima dell'orario di ritiro il sito manda al cliente un'email di promemoria: negozio, indirizzo, orario, mezzi prenotati.
 
-%% DA CHIEDERE: possiamo usare Scheduled %%
 > [!NOTE] Realizzazione del promemoria
 > - Serve un **job periodico** con `@Scheduled` (più `@EnableScheduling` nella configurazione) che gira ad esempio ogni 5 minuti.
 > - Il job cerca le prenotazioni `PRENOTATA` con ritiro tra adesso e adesso + 1 ora, per cui **il promemoria non è ancora stato inviato**.
@@ -192,7 +205,7 @@ Quando il cliente arriva in negozio, il gestore:
 > Al ritiro non c'è il lock pessimistico:
 > - Se il sistema registrasse **quale bici precisa** consegna, il ritiro sarebbe un punto di concorrenza: due gestori dello stesso negozio potrebbero dare la stessa bici a due clienti diversi. Il `@Version` sulla prenotazione non lo vedrebbe, perché sono **due prenotazioni diverse**, e servirebbe lo stesso lock sul negozio della creazione ([[#7.1 Punto critico 1: creare una prenotazione (online o al banco)|7.1]]).
 > - Abbiamo scelto le **quantità per categoria**: al ritiro non si assegna nessuna bici precisa, quindi quel conflitto non esiste. Le quantità sono già state "riservate" in modo sicuro alla creazione della prenotazione.
-> - Al ritiro resta solo il lock **ottimistico** (`@Version`), per il caso "il gestore registra il ritiro mentre il cliente annulla dall'app" ([[#7.2 Punto critico 2: modifiche concorrenti alla stessa prenotazione|7.2]]).
+> - Al ritiro resta solo il lock **ottimistico** (`@Version`), per il caso "due gestori registrano nello stesso momento lo stesso ritiro" ([[#7.2 Punto critico 2: modifiche concorrenti alla stessa prenotazione|7.2]]).
 
 **Accessori aggiunti in negozio.** Al ritiro il cliente può chiedere accessori. Visto che gli accessori sono a numero limitato per negozio ([[#4.5 Scelta del negozio e form di prenotazione|4.5]]), aggiungerli è come prenotarli: bisogna controllare che siano liberi per tutto l'intervallo del noleggio.
 
@@ -408,12 +421,14 @@ Il negozio **non viene modificato**: fa solo da "semaforo" per serializzare le o
 > - Con `@Transactional(timeout = …)` di pochi secondi una richiesta non resta appesa 50 secondi.
 
 ### 7.2 Punto critico 2: modifiche concorrenti alla stessa prenotazione
-**Problema.** Il gestore registra il ritiro **nello stesso istante** in cui il cliente annulla dall'app.
+**Problema.** Due gestori dello stesso negozio registrano **nello stesso istante** il ritiro (o la riconsegna) della stessa prenotazione: un doppio clic, o due dipendenti che servono lo stesso cliente. Senza controllo verrebbero registrati due documenti e due pagamenti.
+
+Il caso "il gestore registra il ritiro mentre il cliente annulla" **di norma non può succedere**: il cliente annulla fino a 3 ore prima del ritiro, il gestore registra il ritiro solo da 30 minuti prima ([[#4.8 Annullamento e mancato ritiro|4.8]]), quindi le due finestre non si sovrappongono. Fanno eccezione le prenotazioni **coinvolte in un ritardo**, che il cliente può annullare anche oltre le 3 ore ([[#5.9 Ritardo che coinvolge il cliente successivo|5.9]]), e l'annullamento fatto dal gestore in negozio: anche in questi casi il `@Version` fa vincere solo la prima operazione.
 
 Per risolvere questo problema si implementa un **lock ottimistico** con un campo `@Version` sulla prenotazione. I conflitti sono **rari**, quindi non conviene bloccare. Chi salva per secondo riceve un'eccezione, la transazione fa rollback e il controller risponde ("la prenotazione è stata modificata, ricarica").
 
 > [!WARNING] Dove si cattura l'eccezione ottimistica
-> - Nasce al **flush/commit**, cioè dopo l'ultima riga del service: nel service non si può catturare.
+> - Nasce al **flush**: al commit, dopo l'ultima riga del service, oppure prima se il service chiama `saveAndFlush`. In entrambi i casi si cattura nel controller.
 > - Arriva al controller come `ObjectOptimisticLockingFailureException` di Spring (sottoclasse di `OptimisticLockingFailureException`), non come `OptimisticLockException` di JPA.
 > - È **unchecked**: l'IDE non ce la ricorda, e se la dimentichiamo diventa un 500.
 >
@@ -427,6 +442,12 @@ Così nel progetto ci sono **tutti e due i lock**, ciascuno con un motivo:
 | annullare, ritirare e pagare, riconsegnare una prenotazione | **ottimistico** (`@Version`) + controllo dello stato | conflitti **rari** sulla **stessa riga** esistente; non conviene far aspettare nessuno. Al ritiro il pessimistico non serve perché non si assegnano bici precise ([[#5.2 Ritiro e pagamento\|5.2]]) |
 
 Il `@Version` sulla prenotazione protegge anche le modifiche che arrivano "da un altro percorso" senza lock.
+
+> [!WARNING] Ordine delle scritture su MySQL
+> In `registraRitiro` e `registraRiconsegna` la prenotazione va aggiornata **per prima** (`saveAndFlush`), e solo dopo si inseriscono documento, penali e pagamento.
+> - L'INSERT di una riga figlia mette un lock **condiviso** sulla prenotazione (controllo della foreign key). Se l'UPDATE della prenotazione arrivasse dopo, al commit, le due transazioni chiederebbero entrambe il lock **esclusivo** tenendo quello condiviso: **deadlock**, e il controller risponderebbe 500.
+> - Con l'UPDATE per primo, la seconda transazione aspetta, poi trova la `version` cambiata e riceve l'eccezione ottimistica (409).
+> - Verificato con il test `ConcorrenzaRitiroTest`: con l'ordine sbagliato MySQL segnala il deadlock già al primo tentativo.
 
 ### 7.3 Punto critico 3: codice sconto usato una volta sola
 Lo stesso cliente potrebbe usare lo stesso codice in due prenotazioni contemporanee in **negozi diversi**, che hanno lock diversi: il lock sul negozio qui non aiuta.
