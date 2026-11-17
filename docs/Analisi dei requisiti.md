@@ -578,52 +578,9 @@ Modi che funzionano:
 
 ---
 
-## 9. Lista di controllo per il modello E-R
+## 9. Modello E-R
 
-Questa lista serve **dopo**, per verificarlo: per ogni domanda, il database deve poter dare la risposta. Se una domanda non trova risposta nello schema, manca qualcosa.
-
-**Persone e accesso**
-- Chi è questo utente (nome, cognome, email, telefono) e che ruolo ha? ([[#2. Attori e ruoli|2]], [[#3. Registrazione e accesso|3]])
-- In quale negozio lavora questo gestore? Quali gestori ha questo negozio? ([[#2. Attori e ruoli|2]])
-- L'email è unica? ([[#7.3 Punto critico 3: codice sconto usato una volta sola|7.3]])
-
-**Negozi**
-- Dove si trova questo negozio (indirizzo, latitudine, longitudine)? ([[#4.3 Filtro dei negozi sulla mappa|4.3]])
-- A che ora apre e chiude, in ogni giorno della settimana? ([[#4.3 Filtro dei negozi sulla mappa|4.3]])
-- Quanti mezzi di ogni tipo ha in servizio? Quanti accessori di ogni tipo? ([[#4.5 Scelta del negozio e form di prenotazione|4.5]], [[#5.6 Gestione dei mezzi|5.6]])
-- Quale riga si blocca con il lock pessimistico? ([[#7.1 Punto critico 1: creare una prenotazione (online o al banco)|7.1]])
-
-**Prezzi** (tutti modificabili dall'admin, uguali in tutti i negozi)
-- Quanto costa un tipo di mezzo, in un giorno feriale e nel fine settimana/festivo? ([[#4.6 Listini prezzi|4.6]])
-- Quanto costa un accessorio, feriale e festivo? ([[#4.6 Listini prezzi|4.6]])
-- Quanto vale uno scaglione di penale di ritardo, feriale e festivo? Quanto vale la penale per un danno? ([[#5.3 Riconsegna e penali|5.3]])
-- Questo giorno è festivo? ([[#4.6 Listini prezzi|4.6]])
-
-**Prenotazioni**
-- Di quale cliente è, in quale negozio, da quando a quando (previsto)? ([[#7. Database dinamico, concorrenza e transazioni|7]])
-- In che stato è? Se annullata, per quale motivo (cliente, negozio, trasferimento)? ([[#6. Stati della prenotazione|6]], [[#5.9 Ritardo che coinvolge il cliente successivo|5.9]])
-- Quali mezzi (tipo e quantità) e quali accessori comprende, e a che prezzo unitario **fissato** ciascuno? ([[#4.6 Listini prezzi|4.6]])
-- Quali accessori sono stati regalati (prezzo zero)? ([[#5.2 Ritiro e pagamento|5.2]], [[#5.9 Ritardo che coinvolge il cliente successivo|5.9]])
-- Quando è stata ritirata e riconsegnata **davvero**? ([[#5.3 Riconsegna e penali|5.3]])
-- Ha avuto proroghe? Fino a quando, a che prezzo? ([[#5.8 Proroga del noleggio|5.8]])
-- C'è il campo `@Version`? ([[#7.2 Punto critico 2: modifiche concorrenti alla stessa prenotazione|7.2]])
-- Il promemoria è già stato inviato? È stata coinvolta in un ritardo, e quindi le spetta il compenso? ([[#4.9 Promemoria via email un'ora prima del ritiro|4.9]], [[#5.9 Ritardo che coinvolge il cliente successivo|5.9]])
-- Se è nata da un trasferimento, da quale prenotazione viene? ([[#5.9 Ritardo che coinvolge il cliente successivo|5.9]])
-
-**Ritiro, pagamenti e penali**
-- Che documento ha lasciato il cliente (numero, nome e cognome)? ([[#5.2 Ritiro e pagamento|5.2]])
-- Quanto è stato pagato, quando, con quale metodo, incassato da quale gestore? ([[#5.2 Ritiro e pagamento|5.2]])
-- Quali penali sono state applicate (ritardo al ritiro, ritardo alla riconsegna, danni con il numero di mezzi danneggiati per tipo), per quale importo? ([[#5.3 Riconsegna e penali|5.3]])
-
-**Codici sconto**
-- Quale codice, di quale cliente, con quale percentuale e scadenza? ([[#4.7 Conferma, email e codice sconto|4.7]])
-- Da quale prenotazione è nato (diventa valido quando quella è conclusa)? Su quale prenotazione è stato usato? ([[#4.7 Conferma, email e codice sconto|4.7]], [[#7.3 Punto critico 3: codice sconto usato una volta sola|7.3]])
-
-**Domande che il sistema fa più spesso** (devono essere query semplici)
-- Quanti mezzi di tipo T sono liberi nel negozio N tra inizio e fine? Lo stesso per gli accessori. ([[#7. Database dinamico, concorrenza e transazioni|7]])
-- Quali negozi sono entro X km da questo punto? ([[#4.3 Filtro dei negozi sulla mappa|4.3]])
-- Quali prenotazioni di questo negozio hanno ritiro oggi? Quali riconsegne sono previste in questa settimana, e quali sono in ritardo? ([[#5.1 Login ed elenco prenotazioni|5.1]], [[#5.4 Calendario delle riconsegne|5.4]])
-- Quali prenotazioni hanno il ritiro tra un'ora e non hanno ancora avuto il promemoria? ([[#4.9 Promemoria via email un'ora prima del ritiro|4.9]])
+![[modello ER progetto web.svg]]
 
 ---
 
