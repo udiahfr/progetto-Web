@@ -1,4 +1,9 @@
 package it.noleggio.entities;
 
-public class Admin {
+import jakarta.persistence.*;
+
+@Entity
+@DiscriminatorValue("ADMIN")
+public class Admin extends Utente{
+
 }
