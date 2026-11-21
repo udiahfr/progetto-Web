@@ -280,9 +280,10 @@ Ogni negozio ha una **quantità per tipo di mezzo** (es. 8 elettriche, 5 muscola
 > - Non si può scendere sotto il numero di mezzi di quel tipo **fuori in questo momento** con noleggi `IN_CORSO`.
 
 ### 5.7 Prenotazioni che il negozio non può onorare
-Due situazioni portano a una prenotazione che il negozio non riesce più a coprire:
+Tre situazioni portano a una prenotazione che il negozio non riesce più a coprire:
 - un mezzo va fuori servizio;
-- un cliente precedente non ha ancora riconsegnato.
+- un cliente precedente non ha ancora riconsegnato;
+- l'admin cambia l'orario di apertura e la prenotazione resta fuori orario ([[#5.10 Orari di apertura|5.10]]).
 
 Il gestore può **annullare la prenotazione da parte del negozio**: stato `ANNULLATA` con motivo "negozio". Il cliente viene avvisato e il suo eventuale codice sconto usato torna valido.
 
@@ -333,6 +334,16 @@ Se un cliente non riconsegna entro la tolleranza di 10 minuti, i suoi mezzi poss
 > - il porta-telefono con powerbank **non si prenota dal sito**: lo aggiunge solo il gestore in negozio ([[#4.5 Scelta del negozio e form di prenotazione|4.5]]). Quindi il caso "l'aveva già prenotato" non esiste;
 > - se **non c'è né il porta-telefono né il tempo** per la proroga gratuita, il cliente sceglie il trasferimento o annulla o aspetta;
 > - con il trasferimento il prezzo **non cambia**, perché i prezzi sono uguali in tutti i negozi ([[#4.6 Listini prezzi|4.6]]).
+
+### 5.10 Orari di apertura
+Ogni negozio ha **una fascia continuata** per giorno della settimana (es. lunedì 9:00–19:00). Un giorno senza orario = negozio chiuso. I festivi non chiudono il negozio: valgono l'orario del giorno della settimana e il listino festivo ([[#4.6 Listini prezzi|4.6]]).
+- Il cliente vede gli orari del negozio per scegliere la finestra di ritiro e riconsegna.
+- L'**admin** può modificare l'orario di un giorno o toglierlo (negozio chiuso quel giorno).
+
+> [!WARNING] Modifica degli orari
+> - Si fa sotto lo **stesso lock sul negozio** della creazione delle prenotazioni ([[#7.1 Punto critico 1: creare una prenotazione (online o al banco)|7.1]]). Altrimenti una prenotazione potrebbe essere controllata con l'orario vecchio mentre viene cambiato.
+> - Chiusura non dopo l'apertura → `OrarioNonValidoException`.
+> - La modifica è sempre permessa. La risposta riporta l'elenco delle prenotazioni future **rimaste fuori orario**, che il gestore dovrà gestire ([[#5.7 Prenotazioni che il negozio non può onorare|5.7]]).
 
 ---
 
@@ -406,7 +417,7 @@ Il negozio **non viene modificato**: fa solo da "semaforo" per serializzare le o
 
 > [!WARNING] Regole 
 > - **Il lock è la prima query della transazione.** Su MySQL (InnoDB, isolamento di default `REPEATABLE_READ`) la transazione "fotografa" il database alla prima lettura normale. Se prima del lock si legge qualcos'altro (il cliente, il negozio senza lock, il codice sconto), il conteggio fatto dopo l'attesa usa la foto **vecchia** e non vede la prenotazione appena inserita dall'altro: doppia prenotazione **nonostante il lock**.
-> - **`isolation = READ_COMMITTED` sui metodi critici** (`creaPrenotazione`, `prorogaPrenotazione`, `aggiungiAccessori`, `trasferisciPrenotazione`, `cambiaQuantitaMezzi`, `cambiaQuantitaAccessori`). È una rete di sicurezza: ogni query vede i dati già committati, anche se qualcuno sbaglia l'ordine. Si collega a quanto visto a lezione sulla scelta del livello di isolamento per ogni funzione.
+> - **`isolation = READ_COMMITTED` sui metodi critici** (`creaPrenotazione`, `prorogaPrenotazione`, `aggiungiAccessori`, `trasferisciPrenotazione`, `cambiaQuantitaMezzi`, `cambiaQuantitaAccessori`, `modificaOrario`, `rimuoviOrario`). È una rete di sicurezza: ogni query vede i dati già committati, anche se qualcuno sbaglia l'ordine. Si collega a quanto visto a lezione sulla scelta del livello di isolamento per ogni funzione.
 > - **Il conteggio è sempre una query**, mai la navigazione di una collezione già caricata (es. `negozio.getPrenotazioni()`). Hibernate restituirebbe dati in memoria di prima del lock.
 > - **Metodo dedicato per il lock.** Non mettere `@Lock` su `findById`, altrimenti **ogni** lettura del negozio (anche le ricerche `readOnly`) prende il lock. E **mai `PESSIMISTIC_READ`**: è un lock condiviso, quindi le due transazioni lo otterrebbero entrambe e il problema resterebbe.
 
@@ -493,6 +504,7 @@ Convenzioni già decise:
 | `PrenotazioneNonTrovataException` | id prenotazione inesistente | 404 |
 | `IntervalloNonValidoException` | fine prima dell'inizio, ritiro nel passato, orario non a step di 30 minuti | 400 |
 | `NegozioChiusoException` | ritiro o riconsegna fuori orario | 400 |
+| `OrarioNonValidoException` | orario di apertura con chiusura non dopo l'apertura ([[#5.10 Orari di apertura\|5.10]]) | 400 |
 | `DisponibilitaInsufficienteException` | non ci sono abbastanza mezzi | 409 |
 | `LimitePrenotazioniSuperatoException` | troppe prenotazioni attive o troppi mezzi | 409 |
 | `StatoPrenotazioneNonValidoException` | es. pagare una prenotazione annullata o scaduta, ritiro fuori finestra | 409 |
@@ -532,6 +544,8 @@ Convenzioni già decise:
 | Calendario riconsegne | `GET /api/gestore/riconsegne?da=&a=` | `calendarioRiconsegne` | `readOnly = true` |
 | Quantità di accessori nel negozio | `PATCH /api/gestore/accessori/{id}` (body: nuova quantità) | `cambiaQuantitaAccessori` | come per i mezzi |
 | Festivi (admin) | `GET`/`POST`/`DELETE /api/admin/festivi` | `aggiungiFestivo`, `rimuoviFestivo` | `rollbackFor` |
+| Orari di apertura (lettura) | `GET /api/negozi/{id}/orari` | `orariNegozio` | `readOnly = true` |
+| Orari di apertura (admin) | `PUT`/`DELETE /api/admin/negozi/{id}/orari/{giorno}`, body della PUT: apertura e chiusura | `modificaOrario`, `rimuoviOrario` | `READ_COMMITTED`, `rollbackFor` + **`PESSIMISTIC_WRITE` sul negozio** ([[#5.10 Orari di apertura\|5.10]]) |
 | Quantità di mezzi in servizio | `PATCH /api/gestore/mezzi/{tipo}` (body: nuova quantità) | `cambiaQuantitaMezzi` | `READ_COMMITTED`, `rollbackFor` + **`PESSIMISTIC_WRITE` sul negozio** |
 | Promemoria un'ora prima | nessun endpoint: job `@Scheduled` | `inviaPromemoria` | una transazione breve per prenotazione, dopo l'invio della mail ([[#4.9 Promemoria via email un'ora prima del ritiro\|4.9]]) |
 | Avviso ritardo al cliente successivo | nessun endpoint: stesso job `@Scheduled` | `gestisciRitardi` | prima si segna la prenotazione (transazione breve, `@Version`), poi si manda la mail ([[#5.9 Ritardo che coinvolge il cliente successivo\|5.9]]) |

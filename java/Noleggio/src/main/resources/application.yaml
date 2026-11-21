@@ -5,11 +5,12 @@ spring:
     # le credenziali si passano come variabili d'ambiente, non si scrivono qui (il file va nella repo)
     username: ${DB_USERNAME:root}
     password: ${DB_PASSWORD:}
-    # createDatabaseIfNotExist: se lo schema noleggio non esiste, MySQL lo crea al primo avvio
-    url: jdbc:mysql://localhost:3306/noleggio?createDatabaseIfNotExist=true&serverTimezone=Europe/Rome
+    # lo schema noleggio si crea con src/main/resources/other/database_mysql.sql
+    url: jdbc:mysql://localhost:3306/noleggio?serverTimezone=Europe/Rome
   jpa:
     hibernate:
-      # Hibernate crea e aggiorna le tabelle partendo dalle @Entity
-      ddl-auto: update
+      # le tabelle le crea lo script SQL; all'avvio Hibernate controlla solo che
+      # le @Entity corrispondano alle tabelle e, se non corrispondono, non parte
+      ddl-auto: validate
     # stampa nel log le query SQL eseguite
     show-sql: true
