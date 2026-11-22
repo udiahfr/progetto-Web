@@ -31,7 +31,7 @@ public class Prenotazione {
 
     @Basic
     @Enumerated(EnumType.STRING)
-    private String motivoAnnullamento;
+    private MotivoAnnullamento motivoAnnullamento;
 
     @Basic
     private LocalDateTime riconsegnaEffettiva;
