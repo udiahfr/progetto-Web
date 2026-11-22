@@ -39,6 +39,10 @@ public class Prenotazione {
     @Basic
     private LocalDateTime ritardoEffettivo; // istante in cui arriva (in ritardo)
 
+    // Per ora non usato: prenotazione avvisata perché un cliente precedente è in ritardo (§5.9)
+    // @Column(nullable = false)
+    // private boolean coinvoltaRitardo;
+
     @ManyToOne(optional = false)
     @JoinColumn(name = "cliente_id", nullable = false)
     private Cliente cliente;

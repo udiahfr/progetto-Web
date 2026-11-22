@@ -18,10 +18,14 @@ public abstract class Utente {
     private Long id;
 
     @Basic
+    @NotBlank
+    @Size(max = 50)
     @Column(nullable = false, length = 50)
     private String nome;
 
     @Basic
+    @NotBlank
+    @Size(max = 50)
     @Column(nullable = false, length = 50)
     private String cognome;
 
@@ -29,11 +33,11 @@ public abstract class Utente {
     @NotBlank // @NotNull lascia passare stringhe vuote
     @Email
     @Basic
-    @Column(nullable = false, length = 50)
+    @Column(nullable = false, length = 100, unique = true)
     private String email;
 
     // Bean Validation
-    @NotNull
+    @NotBlank
     @Pattern(regexp = "^\\+?[0-9]{6,15}$", message = "Numero di telefono inserito non valido")
     @Basic
     @Column(nullable = false, length = 20)

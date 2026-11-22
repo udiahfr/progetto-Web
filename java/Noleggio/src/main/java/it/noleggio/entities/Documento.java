@@ -2,8 +2,7 @@ package it.noleggio.entities;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.*;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -14,14 +13,19 @@ public class Documento {
     @Id
     @NotBlank
     @Pattern(regexp = "^[A-Z0-9]{5,20}$", message = "Codice documento non valido")
+    @Column(nullable = false, length = 20)
     private String codice;
 
     @Basic
-    @Column(nullable = false)
+    @NotBlank
+    @Size(max = 50)
+    @Column(nullable = false, length = 50)
     private String nome;
 
     @Basic
-    @Column(nullable = false)
+    @NotBlank
+    @Size(max = 50)
+    @Column(nullable = false, length = 50)
     private String cognome;
 
     @OneToOne(optional = false)
