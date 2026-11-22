@@ -617,6 +617,10 @@ Modi che funzionano:
 
 ![[modello ER progetto web.svg]]
 
+
+Schema generato automaticamente da Intellij basato sul database:
+![[noleggio.svg]]
+
 ---
 
 ## 10. Priorità
