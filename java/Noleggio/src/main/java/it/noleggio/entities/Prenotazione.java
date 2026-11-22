@@ -33,11 +33,14 @@ public class Prenotazione {
     @Enumerated(EnumType.STRING)
     private MotivoAnnullamento motivoAnnullamento;
 
+    // Ora effettiva di ritiro: registrata sempre al ritiro (T1), anche se il cliente è puntuale.
+    // Il ritardo al ritiro si calcola confrontandola con inizio.
+    @Basic
+    private LocalDateTime ritiroEffettivo;
+
+    // Ora effettiva di riconsegna (T2): confrontata con fine per la penale di ritardo.
     @Basic
     private LocalDateTime riconsegnaEffettiva;
-
-    @Basic
-    private LocalDateTime ritardoEffettivo; // istante in cui arriva (in ritardo)
 
     // Per ora non usato: prenotazione avvisata perché un cliente precedente è in ritardo (§5.9)
     // @Column(nullable = false)

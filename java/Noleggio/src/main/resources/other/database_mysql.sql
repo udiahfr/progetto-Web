@@ -101,7 +101,8 @@ CREATE TABLE festivo (
 );
 
 -- Prenotazione. inizio/fine = ritiro e riconsegna previsti (la proroga sposta fine);
--- ritardo_effettivo/riconsegna_effettiva servono per le penali di ritardo.
+-- ritiro_effettivo/riconsegna_effettiva: ore effettive di ritiro e riconsegna, registrate
+-- sempre; confrontate con inizio/fine danno i ritardi (penali).
 -- coinvolta_ritardo (per ora non usato): avvisata perché un cliente precedente
 -- è in ritardo (compenso al ritiro).
 -- prenotazione_originale_id (R18): la prenotazione annullata che questa sostituisce
@@ -114,7 +115,7 @@ CREATE TABLE prenotazione (
     motivo_annullamento       ENUM('CLIENTE','NEGOZIO','TRASFERIMENTO') NULL,
     inizio                    DATETIME NOT NULL,
     fine                      DATETIME NOT NULL,
-    ritardo_effettivo         DATETIME NULL,
+    ritiro_effettivo          DATETIME NULL,
     riconsegna_effettiva      DATETIME NULL,
     -- coinvolta_ritardo      BOOLEAN  NOT NULL DEFAULT FALSE,
     prenotazione_originale_id BIGINT   NULL,
@@ -147,8 +148,9 @@ CREATE TABLE mezzi_in_prenotazione (
 
 -- Documento d'identità lasciato al ritiro (R16). Prenotazione 0:1 - Documento 1:1:
 -- la FK sta qui (obbligatoria) e UNIQUE impedisce due documenti per la stessa prenotazione.
--- codice: solo lettere maiuscole e cifre (documenti anche non italiani); non è unico,
--- perché lo stesso cliente può lasciare la stessa carta in prenotazioni diverse.
+-- codice: solo lettere maiuscole e cifre (documenti anche non italiani). Il codice è
+-- unico per ogni documento reale, ma qui non è identificativo: lo stesso documento può
+-- comparire più volte (stesso cliente, prenotazioni diverse), quindi la chiave è id.
 CREATE TABLE documento (
     id              BIGINT AUTO_INCREMENT PRIMARY KEY,
     prenotazione_id BIGINT      NOT NULL,
