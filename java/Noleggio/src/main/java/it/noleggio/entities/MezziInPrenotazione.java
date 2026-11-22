@@ -22,7 +22,7 @@ public class MezziInPrenotazione {
 
     @ManyToOne(optional = false)
     @JoinColumn(name = "tipo_mezzo_id", nullable = false)
-    private Tipo_Mezzo tipoMezzo;
+    private TipoMezzo tipoMezzo;
 
     @Basic
     @Column(nullable = false)

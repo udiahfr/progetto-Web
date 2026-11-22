@@ -150,8 +150,9 @@ CREATE TABLE mezzi_in_prenotazione (
 -- codice: solo lettere maiuscole e cifre (documenti anche non italiani); non è unico,
 -- perché lo stesso cliente può lasciare la stessa carta in prenotazioni diverse.
 CREATE TABLE documento (
-    codice          VARCHAR(20) PRIMARY KEY,
+    id              BIGINT AUTO_INCREMENT PRIMARY KEY,
     prenotazione_id BIGINT      NOT NULL,
+    codice          VARCHAR(20) NOT NULL,
     nome            VARCHAR(50) NOT NULL,
     cognome         VARCHAR(50) NOT NULL,
     CONSTRAINT fk_documento_prenotazione FOREIGN KEY (prenotazione_id) REFERENCES prenotazione (id),

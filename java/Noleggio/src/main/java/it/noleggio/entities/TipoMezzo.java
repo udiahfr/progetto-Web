@@ -9,7 +9,8 @@ import java.math.BigDecimal;
 @Getter
 @Setter
 @Entity
-public class Tipo_Mezzo {
+@Table(name = "tipo_mezzo")
+public class TipoMezzo {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -19,17 +20,17 @@ public class Tipo_Mezzo {
 
     @Basic
     @Column(nullable = false, precision = 8, scale = 2)
-    private BigDecimal prezzo_giornaliero_festivo;
+    private BigDecimal prezzoGiornalieroFestivo;
 
     @Basic
     @Column(nullable = false, precision = 8, scale = 2)
-    private BigDecimal prezzo_giornaliero_feriale;
+    private BigDecimal prezzoGiornalieroFeriale;
 
     @Basic
     @Column(nullable = false, precision = 8, scale = 2)
-    private BigDecimal prezzo_orario_festivo;
+    private BigDecimal prezzoOrarioFestivo;
 
     @Basic
     @Column(nullable = false, precision = 8, scale = 2)
-    private BigDecimal prezzo_orario_feriale;
+    private BigDecimal prezzoOrarioFeriale;
 }

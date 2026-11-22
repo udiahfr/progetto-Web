@@ -11,6 +11,11 @@ import lombok.Setter;
 @Setter
 public class Documento {
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    // Il documento non può essere identificativo:
+    // nel caso in cui lo stesso cliente tornasse più volte nello stesso negozio il DB rifiuta l'aggiunta (esiste già la riga)
     @NotBlank
     @Pattern(regexp = "^[A-Z0-9]{5,20}$", message = "Codice documento non valido")
     @Column(nullable = false, length = 20)

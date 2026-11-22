@@ -61,8 +61,11 @@ public class Prenotazione {
     @JsonIgnore
     private long version;
 
-    // Manteniamo la lista dei mezzi prenotati all'interno della prenotazione, in modo da non dover rieffettuare una query ogni volta che ne abbiamo bisogno
-    // Facendo un'operazione su MezziInPrenotazione verrà automaticamente aggiornata la lista di elementi all'interno di Prenotazione
+    // Righe della prenotazione (R8): quanti mezzi di ogni tipo e a che prezzo.
+    // La FK sta in MezziInPrenotazione (mappedBy). cascade = PERSIST: salvando una
+    // prenotazione nuova si salvano anche le sue righe, con un solo save.
+    // Solo PERSIST: le righe non cambiano dopo la creazione e le prenotazioni
+    // non si cancellano (si annullano), quindi niente REMOVE.
     @OneToMany(mappedBy = "prenotazione", cascade = CascadeType.PERSIST)
     private List<MezziInPrenotazione> mezzi = new ArrayList<>();
 }

@@ -22,7 +22,7 @@ public class MezziInNegozio {
     @ManyToOne(optional = false)
     @JoinColumn(name = "tipo_mezzo_id", nullable = false)
     // il tipo di mezzo resta visibile per il gestore o cliente deve poter leggere
-    private Tipo_Mezzo tipoMezzo;
+    private TipoMezzo tipoMezzo;
 
     @Basic
     @Column(nullable = false)
