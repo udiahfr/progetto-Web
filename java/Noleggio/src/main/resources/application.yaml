@@ -18,3 +18,8 @@ spring:
     # con MariaDB va indicato a mano (DB_PLATFORM=org.hibernate.dialect.MariaDBDialect, Davide),
     # perché il driver MySQL non riesce a leggere i metadata di MariaDB
     database-platform: ${DB_PLATFORM:}
+# variabili utili a tutto il sistema richiamabili tramite @Value
+noleggio:
+  tolleranza-ritiro-minuti: 30
+  max-prenotazioni-attive: 2
+  max-mezzi-per-prenotazione: 10
